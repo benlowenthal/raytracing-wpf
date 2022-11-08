@@ -28,7 +28,8 @@ namespace RaytracingWPF
                     faces.Add(new uint[] { uint.Parse(vals[1]) - 1, uint.Parse(vals[2]) - 1, uint.Parse(vals[3]) - 1 });
             }
 
-            obj = new Object3D(0, 0, 0, verts.ToArray(), faces.ToArray(), Colors.Red, 0, 0.75f);
+            obj = new Object3D(0, 0, 0, verts.ToArray(), faces.ToArray(), Colors.White);
+            obj.SetProperties(1, 0.99f, 1.1f);
             return true;
         }
     }

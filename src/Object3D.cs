@@ -18,26 +18,32 @@ namespace RaytracingWPF
         public Face[] faces;
 
         public Color color;
-        public float metallic = 0;
-        public float refract = 0;
+        public float gloss = 0;
+        public float transparent = 0;
+        public float ri = 1;
 
         public Object3D(float x, float y, float z)
         {
             transform = Matrix4x4.CreateTranslation(x, y, z);
         }
 
-        public Object3D(float x, float y, float z, Vector3[] v, uint[][] f, Color c, float metal, float re)
+        public Object3D(float x, float y, float z, Vector3[] v, uint[][] f, Color c)
         {
             transform = Matrix4x4.CreateTranslation(x, y, z);
             verts = v;
             color = c;
-            metallic = Math.Clamp(metal, 0, 1);
-            refract = Math.Max(re, 0);
 
             List<Face> fs = new List<Face>();
             foreach (uint[] face in f)
                 fs.Add(new Face(this, face));
             faces = fs.ToArray();
+        }
+
+        public void SetProperties(float gl, float tr, float re)
+        {
+            gloss = Math.Clamp(gl, 0, 1);
+            transparent = Math.Clamp(tr, 0, 1);
+            ri = Math.Max(re, 1);
         }
 
         public static Vector4 Apply(Vector4 v, Matrix4x4 m)

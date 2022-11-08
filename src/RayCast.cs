@@ -8,7 +8,6 @@ namespace RaytracingWPF
     {
         public Vector3 start;
         public Vector3 dir;
-        public Vector3 normal;
         public float t;
         public uint tri;
 
@@ -16,7 +15,6 @@ namespace RaytracingWPF
         {
             start = origin;
             dir = direc;
-            normal = new Vector3();
             t = float.MaxValue;
             tri = 0;
         }
@@ -67,7 +65,7 @@ namespace RaytracingWPF
             float tmin = Math.Max(Math.Max(Math.Min(fmin.X, fmax.X), Math.Min(fmin.Y, fmax.Y)), Math.Min(fmin.Z, fmax.Z));
             float tmax = Math.Min(Math.Min(Math.Max(fmin.X, fmax.X), Math.Max(fmin.Y, fmax.Y)), Math.Max(fmin.Z, fmax.Z));
 
-            return (tmax >= tmin && tmax > 0 && tmin < ray.t);
+            return tmax >= tmin && tmax > 0 && tmin < ray.t;
         }
 
         public static bool Triangle(ref Ray ray, uint triIdx, out float t)
@@ -93,7 +91,7 @@ namespace RaytracingWPF
             if (v < 0f || u + v > 1f) return false; //
 
             t = f * Vector3.Dot(e2, q);
-            return (t > EPSILON && t < ray.t); //ray hit
+            return t > EPSILON && t < ray.t; //ray hit
         }
     }
 }

@@ -61,35 +61,61 @@ namespace RaytracingWPF
             {
                 Object3D hitObj = Env.objects[BVH.tris[ray.tri].obj];
                 Vector3 hitPoint = ray.start + (ray.dir * ray.t);
+                Vector3 hitNormal = BVH.tris[ray.tri].normal;
 
                 //reflection
                 Color c = hitObj.color;
-                if (bounces > 0)
-                    c += CastRay(hitPoint, Vector3.Reflect(dir, ray.normal), bounces - 1) * (1 / ray.t);
+                if (hitObj.gloss > 0 && bounces > 0)
+                {
+                    c *= 1 - hitObj.gloss;
+                    c += CastRay(hitPoint, Vector3.Reflect(ray.dir, hitNormal), bounces - 1) * hitObj.gloss;
+                }
 
                 //refraction
-                Color r = Colors.Black;
-                if (hitObj.refract != 1)
-                    r += CastRay(hitPoint, Vector3.Reflect(dir, ray.normal), bounces - 1) * (1 / ray.t);
+                if (hitObj.transparent > 0)
+                {
+                    c *= 1 - hitObj.transparent;
+                    if (Vector3.Dot(ray.dir, hitNormal) < 0) //front face
+                        c += CastRay(hitPoint, Refract(ray.dir, -hitNormal, hitObj.ri), bounces) * hitObj.transparent;
+                    else //back face
+                        c += CastRay(hitPoint, Refract(ray.dir, hitNormal, 1 / hitObj.ri), bounces);
+                    return c;
+                }
 
                 //shadows
                 Color s = Colors.Black;
                 foreach (Emitter e in Env.lights)
-                    s += CastLightRay(hitPoint, e);
+                {
+                    s += CastLightRay(hitPoint, Vector3.Reflect(ray.dir, hitNormal), e);
+                    s += CastLightRay(hitPoint, Vector3.Reflect(ray.dir, hitNormal), e);
+                    s *= 0.5f;
+                }
 
                 return Color.FromScRgb(1, c.ScR * s.ScR, c.ScG * s.ScG, c.ScB * s.ScB);
             }
 
-            return new Color();
+            return Colors.Black;
         }
 
-        private Color CastLightRay(Vector3 start, Emitter e)
+        private Color CastLightRay(Vector3 start, Vector3 reflect, Emitter e)
         {
-            Ray ray = new Ray(start , e.transform.Translation - start);
+            Random r = new Random();
+            Vector3 dir = e.transform.Translation - start + new Vector3(r.Next(100) / 250f, r.Next(100) / 250f, r.Next(100) / 250f);
+            Ray ray = new Ray(start, dir);
 
-            if (RayCast.Cast(ref ray)) return new Color();
-                        
-            return e.color * e.str * (1 / (e.transform.Translation - start).Length());
+            if (RayCast.Cast(ref ray) && (ray.t * ray.t) < dir.LengthSquared()) return new Color();
+
+            //specular
+            if ((Vector3.Normalize(ray.dir) - Vector3.Normalize(reflect)).LengthSquared() < 0.0001f) return e.color * e.str;
+
+            //diffuse
+            return e.color * e.str * (1 / dir.Length());
+        }
+
+        private Vector3 Refract(Vector3 i, Vector3 n, float ri)
+        {
+            float dot = Vector3.Dot(i, n);
+            return (n * MathF.Sqrt(1 - (ri * ri * (1 - (dot * dot))))) + ((i - (n * dot)) * ri);
         }
 
         public Vector4 ApplyTransform(Vector4 v)
