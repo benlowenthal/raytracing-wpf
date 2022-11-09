@@ -17,7 +17,7 @@ namespace RaytracingWPF
         public Vector3[] verts;
         public Face[] faces;
 
-        public Color color;
+        public Vector3 color;
         public float gloss = 0;
         public float transparent = 0;
         public float ri = 1;
@@ -27,7 +27,7 @@ namespace RaytracingWPF
             transform = Matrix4x4.CreateTranslation(x, y, z);
         }
 
-        public Object3D(float x, float y, float z, Vector3[] v, uint[][] f, Color c)
+        public Object3D(float x, float y, float z, Vector3[] v, uint[][] f, Vector3 c)
         {
             transform = Matrix4x4.CreateTranslation(x, y, z);
             verts = v;

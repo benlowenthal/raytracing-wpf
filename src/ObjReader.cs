@@ -25,11 +25,11 @@ namespace RaytracingWPF
                 if (vals[0] == "v")
                     verts.Add(new Vector3(float.Parse(vals[1]), float.Parse(vals[2]), float.Parse(vals[3])));
                 if (vals[0] == "f")
-                    faces.Add(new uint[] { uint.Parse(vals[1]) - 1, uint.Parse(vals[2]) - 1, uint.Parse(vals[3]) - 1 });
+                    faces.Add(new uint[] { uint.Parse(vals[1].Split('/')[0]) - 1, uint.Parse(vals[2].Split('/')[0]) - 1, uint.Parse(vals[3].Split('/')[0]) - 1 });
             }
 
-            obj = new Object3D(0, 0, 0, verts.ToArray(), faces.ToArray(), Colors.White);
-            obj.SetProperties(1, 0.99f, 1.1f);
+            obj = new Object3D(0, 0, 0, verts.ToArray(), faces.ToArray(), Vector3.One);
+            obj.SetProperties(1, 1, 1.1f);
             return true;
         }
     }

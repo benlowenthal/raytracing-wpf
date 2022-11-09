@@ -33,14 +33,12 @@ namespace RaytracingWPF
         {
             BVHNode node = BVH.nodes[idx];
 
-            if (!AABB(ray, node.aabb.min, node.aabb.max)) return false;
-
             if (node.triCount > 0) //node is leaf
             {
                 bool hit = false;
                 for (uint i = 0; i < node.triCount; i++)
                 {
-                    if (Triangle(ref ray, node.triOffset + i, out float t))
+                    if (Triangle(ray, node.triOffset + i, out float t))
                     {
                         ray.t = t;
                         ray.tri = node.triOffset + i;
@@ -51,13 +49,29 @@ namespace RaytracingWPF
             }
             else //node has sub nodes
             {
-                bool b1 = BVHTree(ref ray, node.childPtr);
-                bool b2 = BVHTree(ref ray, node.childPtr + 1);
+                float dist1 = AABB(ray, BVH.nodes[node.childPtr].aabb.min, BVH.nodes[node.childPtr].aabb.max);
+                float dist2 = AABB(ray, BVH.nodes[node.childPtr + 1].aabb.min, BVH.nodes[node.childPtr + 1].aabb.max);
+
+                if (dist1 == float.MaxValue && dist2 == float.MaxValue) return false;
+
+                bool b1 = false;
+                bool b2 = false;
+                if (dist1 < dist2)
+                {
+                    b1 = BVHTree(ref ray, node.childPtr);
+                    if (dist2 < ray.t) b2 = BVHTree(ref ray, node.childPtr + 1);
+                }
+                else
+                {
+                    b2 = BVHTree(ref ray, node.childPtr + 1);
+                    if (dist1 < ray.t) b1 = BVHTree(ref ray, node.childPtr);
+                }
+
                 return b1 || b2;
             }
         }
 
-        public static bool AABB(Ray ray, Vector3 min, Vector3 max)
+        public static float AABB(Ray ray, Vector3 min, Vector3 max)
         {
             Vector3 fmin = (min - ray.start) / ray.dir;
             Vector3 fmax = (max - ray.start) / ray.dir;
@@ -65,10 +79,11 @@ namespace RaytracingWPF
             float tmin = Math.Max(Math.Max(Math.Min(fmin.X, fmax.X), Math.Min(fmin.Y, fmax.Y)), Math.Min(fmin.Z, fmax.Z));
             float tmax = Math.Min(Math.Min(Math.Max(fmin.X, fmax.X), Math.Max(fmin.Y, fmax.Y)), Math.Max(fmin.Z, fmax.Z));
 
-            return tmax >= tmin && tmax > 0 && tmin < ray.t;
+            if (tmax >= tmin && tmax > 0 && tmin < ray.t) return tmin;
+            else return float.MaxValue;
         }
 
-        public static bool Triangle(ref Ray ray, uint triIdx, out float t)
+        public static bool Triangle(Ray ray, uint triIdx, out float t)
         {
             t = 0;
             Vector3[] face = BVH.tris[triIdx].v;

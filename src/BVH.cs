@@ -55,6 +55,13 @@ namespace RaytracingWPF
 
             Subdivide(idx);
 
+            uint end = 0;
+            while (nodes[end].childPtr != 0) end = nodes[end].childPtr + 1; //follow right child until end
+
+            //truncate empty space in array
+            BVHNode[] nodesTemp = new BVHNode[end + 1];
+            for (uint i = 0; i <= end; i++) nodesTemp[i] = nodes[i];
+            nodes = nodesTemp;
             foreach (BVHNode n in nodes) System.Diagnostics.Trace.WriteLine(n.triCount + "\t" + n.aabb.min + " -> " + n.aabb.max);
 
             return true;

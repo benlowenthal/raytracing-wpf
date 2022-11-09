@@ -13,7 +13,7 @@ namespace RaytracingWPF
     {
         public float str;
 
-        public Emitter(float x, float y, float z, Color c, float strength) : base(x, y, z)
+        public Emitter(float x, float y, float z, Vector3 c, float strength) : base(x, y, z)
         {
             str = strength;
             color = c;

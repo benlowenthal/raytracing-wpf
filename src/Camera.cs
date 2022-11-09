@@ -18,6 +18,9 @@ namespace RaytracingWPF
         public float vFov;
         public float hFov;
 
+        private Random r = new Random();
+
+        private const int TILE_SIZE = 16;
         private const int MAX_BOUNCES = 1;
 
         private byte[] buffer;
@@ -34,28 +37,31 @@ namespace RaytracingWPF
 
         public byte[] CreateImage()
         {
-            for (int j = 0; j < height; j++)
+            for (int y = 0; y < height; y += TILE_SIZE) for (int x = 0; x < width; x += TILE_SIZE)
             {
-                for (int i = 0; i < width; i++)
+                for (int b = 0; b < TILE_SIZE && y + b < height; b++) for (int a = 0; a < TILE_SIZE && x + a < width; a++)
                 {
+                    int i = x + a;
+                    int j = y + b;
+
                     //find ray direction at i,j
                     Vector4 dir = Object3D.Apply(new Vector4(0, 0, 1, 0), Matrix4x4.CreateFromYawPitchRoll(i * vFov / width - vFov / 2f, j * hFov / height - hFov / 2f, 0));
                     dir = ApplyTransform(dir);
                     
                     //calculate per-pixel colour
-                    Color c = CastRay(transform.Translation, new Vector3(dir.X, dir.Y, dir.Z), MAX_BOUNCES);
+                    Vector3 c = CastRay(transform.Translation, new Vector3(dir.X, dir.Y, dir.Z), MAX_BOUNCES);
 
-                    buffer[j * width * 3 + i * 3 + 0] = c.R;
-                    buffer[j * width * 3 + i * 3 + 1] = c.G;
-                    buffer[j * width * 3 + i * 3 + 2] = c.B;
+                    buffer[j * width * 3 + i * 3 + 0] = (byte) (Math.Clamp(c.X, 0, 1) * 255);
+                    buffer[j * width * 3 + i * 3 + 1] = (byte) (Math.Clamp(c.Y, 0, 1) * 255);
+                    buffer[j * width * 3 + i * 3 + 2] = (byte) (Math.Clamp(c.Z, 0, 1) * 255);
                 }
             }
             return buffer;
         }
 
-        private Color CastRay(Vector3 start, Vector3 dir, int bounces)
+        private Vector3 CastRay(Vector3 start, Vector3 dir, int bounces)
         {
-            Ray ray = new Ray(start, Vector3.Normalize(dir));
+            Ray ray = new Ray(start, dir);
 
             if (RayCast.Cast(ref ray))
             {
@@ -64,7 +70,7 @@ namespace RaytracingWPF
                 Vector3 hitNormal = BVH.tris[ray.tri].normal;
 
                 //reflection
-                Color c = hitObj.color;
+                Vector3 c = hitObj.color;
                 if (hitObj.gloss > 0 && bounces > 0)
                 {
                     c *= 1 - hitObj.gloss;
@@ -83,33 +89,32 @@ namespace RaytracingWPF
                 }
 
                 //shadows
-                Color s = Colors.Black;
+                Vector3 s = Vector3.Zero;
                 foreach (Emitter e in Env.lights)
                 {
-                    s += CastLightRay(hitPoint, Vector3.Reflect(ray.dir, hitNormal), e);
-                    s += CastLightRay(hitPoint, Vector3.Reflect(ray.dir, hitNormal), e);
-                    s *= 0.5f;
+                    //Vector3.Reflect(ray.dir, hitNormal)
+                    s += CastLightRay(hitPoint, e);
+                    s += CastLightRay(hitPoint, e);
+                    s += CastLightRay(hitPoint, e);
+                    s *= 0.33334f;
                 }
 
-                return Color.FromScRgb(1, c.ScR * s.ScR, c.ScG * s.ScG, c.ScB * s.ScB);
+                return new Vector3(c.X * s.X, c.Y * s.Y, c.Z * s.Z);
             }
 
-            return Colors.Black;
+            return Vector3.Zero;
         }
 
-        private Color CastLightRay(Vector3 start, Vector3 reflect, Emitter e)
+        private Vector3 CastLightRay(Vector3 start, Emitter e)
         {
-            Random r = new Random();
-            Vector3 dir = e.transform.Translation - start + new Vector3(r.Next(100) / 250f, r.Next(100) / 250f, r.Next(100) / 250f);
+            float dv = 1 / 250f;
+            Vector3 dir = e.transform.Translation - start + new Vector3(r.Next(100) * dv, r.Next(100) * dv, r.Next(100) * dv);
             Ray ray = new Ray(start, dir);
 
-            if (RayCast.Cast(ref ray) && (ray.t * ray.t) < dir.LengthSquared()) return new Color();
-
-            //specular
-            if ((Vector3.Normalize(ray.dir) - Vector3.Normalize(reflect)).LengthSquared() < 0.0001f) return e.color * e.str;
+            if (RayCast.Cast(ref ray) && (ray.t * ray.t) < dir.LengthSquared()) return Vector3.Zero;
 
             //diffuse
-            return e.color * e.str * (1 / dir.Length());
+            return e.color * (e.str * 10 / (dir.LengthSquared() + 1));
         }
 
         private Vector3 Refract(Vector3 i, Vector3 n, float ri)
