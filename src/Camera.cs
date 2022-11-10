@@ -69,23 +69,25 @@ namespace RaytracingWPF
                 Vector3 hitPoint = ray.start + (ray.dir * ray.t);
                 Vector3 hitNormal = BVH.tris[ray.tri].normal;
 
-                //reflection
                 Vector3 c = hitObj.color;
+
+                //reflection
+                Vector3 rl = Vector3.Zero;
                 if (hitObj.gloss > 0 && bounces > 0)
                 {
                     c *= 1 - hitObj.gloss;
-                    c += CastRay(hitPoint, Vector3.Reflect(ray.dir, hitNormal), bounces - 1) * hitObj.gloss;
+                    rl = CastRay(hitPoint, Vector3.Reflect(ray.dir, hitNormal), bounces - 1) * hitObj.gloss;
                 }
 
                 //refraction
+                Vector3 rf = Vector3.Zero;
                 if (hitObj.transparent > 0)
                 {
                     c *= 1 - hitObj.transparent;
                     if (Vector3.Dot(ray.dir, hitNormal) < 0) //front face
-                        c += CastRay(hitPoint, Refract(ray.dir, -hitNormal, hitObj.ri), bounces) * hitObj.transparent;
+                        rf = CastRay(hitPoint, Refract(ray.dir, -hitNormal, hitObj.ri), bounces) * hitObj.transparent;
                     else //back face
-                        c += CastRay(hitPoint, Refract(ray.dir, hitNormal, 1 / hitObj.ri), bounces);
-                    return c;
+                        rf = CastRay(hitPoint, Refract(ray.dir, hitNormal, 1 / hitObj.ri), bounces);
                 }
 
                 //shadows
@@ -99,7 +101,7 @@ namespace RaytracingWPF
                     s *= 0.33334f;
                 }
 
-                return new Vector3(c.X * s.X, c.Y * s.Y, c.Z * s.Z);
+                return (c * s) + (rl + rf);
             }
 
             return Vector3.Zero;
