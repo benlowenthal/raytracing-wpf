@@ -8,8 +8,18 @@
         Title="MainWindow" Height="800" Width="1100
         ">
     <Grid>
-        <Image x:Name="image" Width="800" Height="450" Margin="150,100,150,234"/>
-        <Button Content="Open .obj" Margin="456,617,456,105" Click="Button_Click" FontSize="18"/>
+        <Image x:Name="image" Width="800" Height="450" Margin="150,50,0,0" VerticalAlignment="Top" HorizontalAlignment="Left"/>
+        <Grid Margin="0,500,0,0">
+            <ListBox x:Name="listBox" Margin="50,50,800,50"/>
+            
+            <TextBox x:Name="positionArgs" Margin="425,50,425,175" Text="Selected object transform args&#xA;format: x,y,z,rx,ry,rz" TextWrapping="Wrap" FontSize="16"/>
+            <TextBox x:Name="materialArgs" Margin="425,125,425,100" Text="Selected object material args&#xA;format: gloss,transparency,RI" TextWrapping="Wrap" FontSize="16"/>
+            <Button Content="Update selected object" Margin="425,200,425,50" FontSize="18" Click="UpdateButton"/>
+            
+            <TextBox x:Name="importPositionArgs" Margin="800,50,50,175" Text="Imported .obj position args&#x0A;format: x,y,z" TextWrapping="Wrap" FontSize="16"/>
+            <TextBox x:Name="importMaterialArgs" Margin="800,125,50,100" Text="Imported .obj material args&#x0A;format: gloss,transparency,RI" TextWrapping="Wrap" FontSize="16"/>
+            <Button Content="Open .obj" Margin="800,200,50,50" FontSize="18" Click="ImportButton"/>
+        </Grid>
 
     </Grid>
 </Window>

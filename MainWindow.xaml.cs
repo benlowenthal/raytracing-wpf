@@ -28,11 +28,13 @@ namespace RaytracingWPF
             int h = (int)image.Height;
 
             Env.Init(w, h);
+            foreach (Object3D o in Env.objects)
+                listBox.Items.Add(o.color);
 
             BVH.Build();
 
             Vector3 t = Env.camera.transform.Translation;
-            fillLight = new Emitter(t.X, t.Y, t.Z, Colors.White, 1);
+            fillLight = new Emitter(t.X, t.Y, t.Z, Vector3.One, 1);
             Env.Add(fillLight);
 
             frame = new WriteableBitmap(w, h, 96d, 96d, PixelFormats.Rgb24, null);
@@ -78,8 +80,23 @@ namespace RaytracingWPF
             }
         }
 
-        private void Button_Click(object sender, RoutedEventArgs e)
+        private void ImportButton(object sender, RoutedEventArgs e)
         {
+            string[] pos = importPositionArgs.Text.Split(',');
+            string[] mat = importMaterialArgs.Text.Split(',');
+
+            if (pos.Length != 3 || mat.Length != 3) return;
+
+            float[] parsed;
+            try
+            {
+                parsed = new float[] {
+                    float.Parse(pos[0]), float.Parse(pos[1]), float.Parse(pos[2]),
+                    float.Parse(mat[0]), float.Parse(mat[1]), float.Parse(mat[2])
+                };
+            }
+            catch (FormatException) { return; }
+
             OpenFileDialog ofd = new OpenFileDialog();
             ofd.Multiselect = false;
             ofd.Title = "Open .obj";
@@ -88,9 +105,40 @@ namespace RaytracingWPF
 
             if (ObjReader.ReadFile(ofd.FileName, out Object3D obj))
             {
+                obj.transform.Translation = new Vector3(parsed[1], parsed[2], parsed[3]);
+                obj.SetProperties(parsed[3], parsed[4], parsed[5]);
                 Env.Add(obj);
+                listBox.Items.Add(obj.color);
                 BVH.Build();
             }
+        }
+
+        private void UpdateButton(object sender, RoutedEventArgs e)
+        {
+            if (listBox.SelectedIndex == 1) return;
+
+            string[] pos = positionArgs.Text.Split(',');
+            string[] mat = materialArgs.Text.Split(',');
+            Object3D obj = Env.objects[listBox.SelectedIndex];
+
+            if (pos.Length != 6 || mat.Length != 3 || obj == null) return;
+
+            float[] parsed;
+            try
+            {
+                parsed = new float[] {
+                    float.Parse(pos[0]), float.Parse(pos[1]), float.Parse(pos[2]),
+                    float.Parse(pos[3]), float.Parse(pos[4]), float.Parse(pos[5]),
+                    float.Parse(mat[0]), float.Parse(mat[1]), float.Parse(mat[2])
+                };
+            }
+            catch (FormatException) { return; }
+
+            obj.transform = Matrix4x4.CreateFromYawPitchRoll(parsed[3], parsed[4], parsed[5]);
+            obj.transform.Translation = new Vector3(parsed[0], parsed[1], parsed[2]);
+            obj.SetProperties(parsed[6], parsed[7], parsed[8]);
+
+            BVH.Build();
         }
     }
 }
