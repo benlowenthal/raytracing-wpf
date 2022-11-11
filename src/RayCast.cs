@@ -8,6 +8,7 @@ namespace RaytracingWPF
     {
         public Vector3 start;
         public Vector3 dir;
+        public Vector3 dirInv;
         public float t;
         public uint tri;
 
@@ -15,6 +16,7 @@ namespace RaytracingWPF
         {
             start = origin;
             dir = direc;
+            dirInv = new Vector3(1f / direc.X, 1f / direc.Y, 1f / direc.Z);
             t = float.MaxValue;
             tri = 0;
         }
@@ -73,8 +75,8 @@ namespace RaytracingWPF
 
         public static float AABB(Ray ray, Vector3 min, Vector3 max)
         {
-            Vector3 fmin = (min - ray.start) / ray.dir;
-            Vector3 fmax = (max - ray.start) / ray.dir;
+            Vector3 fmin = (min - ray.start) * ray.dirInv;
+            Vector3 fmax = (max - ray.start) * ray.dirInv;
 
             float tmin = Math.Max(Math.Max(Math.Min(fmin.X, fmax.X), Math.Min(fmin.Y, fmax.Y)), Math.Min(fmin.Z, fmax.Z));
             float tmax = Math.Min(Math.Min(Math.Max(fmin.X, fmax.X), Math.Max(fmin.Y, fmax.Y)), Math.Max(fmin.Z, fmax.Z));
