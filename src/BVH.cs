@@ -33,7 +33,7 @@ namespace RaytracingWPF
             List<Tri> t = new List<Tri>();
             for (int i = 0; i < Env.objects.Count; i++)
             {
-                foreach (Face f in Env.objects[i].faces)
+                foreach (uint[] f in Env.objects[i].faces)
                 {
                     t.Add(new Tri(i, Env.objects[i].WorldSpace(f)));
                     n++;
@@ -43,9 +43,6 @@ namespace RaytracingWPF
             if (n < 1) return false;
             tris = t.ToArray();
             nodes = new BVHNode[2 * n - 1];
-
-            //calculate centroids
-            for (int i = 0; i < n; i++) tris[i].centroid = (tris[i].v[0] + tris[i].v[1] + tris[i].v[2]) / 3f;
 
             uint idx = 0;
             nodes[idx].childPtr = 0;
@@ -75,13 +72,15 @@ namespace RaytracingWPF
             uint splitAxis = 0;
             float splitPos = 0;
             float minCost = float.MaxValue;
-            for (uint x = 0; x < node.triCount; x++)
+            for (uint axis = 0; axis < 3; axis++)
             {
-                Tri t = tris[node.childPtr + x];
-                for (uint axis = 0; axis < 3; axis++)
+                float start = GetAxis(node.aabb.min, axis);
+                float incr = GetAxis(node.aabb.max - node.aabb.min, axis) / 16f;
+
+                for (uint x = 1; x < 16; x++) //subdivisions
                 {
-                    float pos = GetAxis(t.centroid, axis);
-                    float cost = SAHeuristic(idx, pos, axis);
+                    float pos = start + (incr * x);
+                    float cost = SplitHeuristic(idx, pos, axis);
                     if (cost < minCost)
                     {
                         splitAxis = axis;
@@ -132,7 +131,7 @@ namespace RaytracingWPF
             Subdivide(used + 2);
         }
 
-        private static float SAHeuristic(uint idx, float pos, uint axis)
+        private static float SplitHeuristic(uint idx, float pos, uint axis)
         {
             uint i = 0;
             uint j = 0;
@@ -142,7 +141,7 @@ namespace RaytracingWPF
 
             for (uint x = 0; x < nodes[idx].triCount; x++)
             {
-                Tri t = tris[nodes[idx].childPtr + x];
+                Tri t = tris[nodes[idx].triOffset + x];
                 if (GetAxis(t.centroid, axis) < pos)
                 {
                     foreach (Vector3 v in t.v)
@@ -182,9 +181,9 @@ namespace RaytracingWPF
         {
             Vector3 min = new Vector3(int.MaxValue);
             Vector3 max = new Vector3(int.MinValue);
-            for (uint i = nodes[idx].triOffset; i < nodes[idx].triOffset + nodes[idx].triCount; i++)
+            for (uint i = 0; i < nodes[idx].triCount; i++)
             {
-                Vector3[] verts = tris[i].v;
+                Vector3[] verts = tris[nodes[idx].triOffset + i].v;
 
                 foreach (Vector3 v in verts)
                 {
