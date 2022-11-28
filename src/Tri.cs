@@ -14,22 +14,9 @@ namespace RaytracingWPF
         public Tri(int ob, params Vector3[] verts)
         {
             v = verts;
-            centroid = new Vector3();
+            centroid = (verts[0] + verts[1] + verts[2]) / 3f;
             obj = ob;
             Vector3 dir = Vector3.Cross(verts[1] - verts[0], verts[2] - verts[0]);
-            normal = Vector3.Normalize(dir);
-        }
-    }
-
-    struct Face
-    {
-        public uint[] vIdx;
-        public Vector3 normal;
-
-        public Face(Object3D obj, uint[] v)
-        {
-            vIdx = v;
-            Vector3 dir = Vector3.Cross(obj.verts[v[1]] - obj.verts[v[0]], obj.verts[v[2]] - obj.verts[v[0]]);
             normal = Vector3.Normalize(dir);
         }
     }

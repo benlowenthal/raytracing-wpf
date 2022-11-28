@@ -15,9 +15,11 @@ namespace RaytracingWPF
         public Matrix4x4 transform;
 
         public Vector3[] verts;
-        public Face[] faces;
+        public uint[][] faces;
 
         public Vector3 color;
+        public string texture;
+
         public float gloss = 0;
         public float transparent = 0;
         public float ri = 1;
@@ -32,11 +34,7 @@ namespace RaytracingWPF
             transform = Matrix4x4.CreateTranslation(x, y, z);
             verts = v;
             color = c;
-
-            List<Face> fs = new List<Face>();
-            foreach (uint[] face in f)
-                fs.Add(new Face(this, face));
-            faces = fs.ToArray();
+            faces = f;
         }
 
         public void SetProperties(float gl, float tr, float re)
@@ -56,12 +54,12 @@ namespace RaytracingWPF
             );
         }
 
-        public Vector3[] WorldSpace(Face face)
+        public Vector3[] WorldSpace(uint[] face)
         {
             Vector3[] world = new Vector3[3];
             for (int i = 0; i < 3; i++)
             {
-                Vector4 x = Apply(new Vector4(verts[face.vIdx[i]], 1), transform);
+                Vector4 x = Apply(new Vector4(verts[face[i]], 1), transform);
                 world[i] = new Vector3(x.X, x.Y, x.Z);
             }
             return world;
