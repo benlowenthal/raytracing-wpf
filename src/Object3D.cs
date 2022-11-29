@@ -1,12 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Numerics;
-using System.Windows;
-using System.Windows.Input;
-using System.Windows.Media;
+using System.IO;
 using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
+using System.Windows.Media;
 
 namespace RaytracingWPF
 {
@@ -15,10 +12,14 @@ namespace RaytracingWPF
         public Matrix4x4 transform;
 
         public Vector3[] verts;
+        public Vector2[] uvs;
         public uint[][] faces;
+        public uint[][] uvIdx;
 
         public Vector3 color;
-        public string texture;
+        public byte[] texture;
+        public int texW;
+        public int texH;
 
         public float gloss = 0;
         public float transparent = 0;
@@ -42,6 +43,44 @@ namespace RaytracingWPF
             gloss = Math.Clamp(gl, 0, 1);
             transparent = Math.Clamp(tr, 0, 1);
             ri = Math.Max(re, 1);
+        }
+
+        public bool SetTextureProperties(string path, Vector2[] t, uint[][] tIdx)
+        {
+            uvIdx = tIdx;
+            uvs = t;
+
+            try
+            {
+                FileStream fs = new FileStream(path, FileMode.Open);
+                BitmapDecoder dec;
+
+                if (path.EndsWith(".jpg") || path.EndsWith(".jpeg"))
+                    dec = new JpegBitmapDecoder(fs, BitmapCreateOptions.None, BitmapCacheOption.Default);
+                else if (path.EndsWith(".png"))
+                    dec = new PngBitmapDecoder(fs, BitmapCreateOptions.None, BitmapCacheOption.Default);
+                else
+                {
+                    System.Diagnostics.Trace.WriteLine("Unknown file type: " + path);
+                    return false;
+                }
+
+                FormatConvertedBitmap fcb = new FormatConvertedBitmap(dec.Frames[0], PixelFormats.Rgb24, null, 0);
+
+                texW = dec.Frames[0].PixelWidth;
+                texH = dec.Frames[0].PixelHeight;
+                texture = new byte[texW * texH * 3];
+                fcb.CopyPixels(texture, texW * 3, 0);
+
+                fs.Close();
+            }
+            catch (IOException)
+            {
+                System.Diagnostics.Trace.WriteLine("File not found: " + path);
+                return false;
+            }
+
+            return true;
         }
 
         public static Vector4 Apply(Vector4 v, Matrix4x4 m)

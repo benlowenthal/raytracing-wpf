@@ -24,14 +24,14 @@ namespace RaytracingWPF
 
     static class RayCast
     {
-        private const float EPSILON = 0.000001f;
+        private const float EPSILON = 0.00001f;
 
         public static bool Cast(ref Ray ray)
         {
             return BVHTree(ref ray, 0);
         }
 
-        public static bool BVHTree(ref Ray ray, uint idx)
+        private static bool BVHTree(ref Ray ray, uint idx)
         {
             BVHNode node = BVH.nodes[idx];
 
@@ -73,7 +73,7 @@ namespace RaytracingWPF
             }
         }
 
-        public static float AABB(Ray ray, Vector3 min, Vector3 max)
+        private static float AABB(Ray ray, Vector3 min, Vector3 max)
         {
             Vector3 fmin = (min - ray.start) * ray.dirInv;
             Vector3 fmax = (max - ray.start) * ray.dirInv;
@@ -85,7 +85,7 @@ namespace RaytracingWPF
             else return float.MaxValue;
         }
 
-        public static bool Triangle(Ray ray, uint triIdx, out float t)
+        private static bool Triangle(Ray ray, uint triIdx, out float t)
         {
             t = 0;
             Vector3[] face = BVH.tris[triIdx].v;

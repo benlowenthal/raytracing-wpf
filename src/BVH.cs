@@ -33,9 +33,11 @@ namespace RaytracingWPF
             List<Tri> t = new List<Tri>();
             for (int i = 0; i < Env.objects.Count; i++)
             {
-                foreach (uint[] f in Env.objects[i].faces)
+                Object3D obj = Env.objects[i];
+                for (int j = 0; j < obj.faces.Length; j++)
                 {
-                    t.Add(new Tri(i, Env.objects[i].WorldSpace(f)));
+                    uint[] uvs = obj.uvIdx != null ? obj.uvIdx[j] : null;
+                    t.Add(new Tri(i, uvs, obj.WorldSpace(obj.faces[j])));
                     n++;
                 }
             }
