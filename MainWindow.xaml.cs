@@ -105,7 +105,7 @@ namespace RaytracingWPF
 
             if (ObjReader.ReadFile(ofd.FileName, out Object3D obj))
             {
-                obj.transform.Translation = new Vector3(parsed[1], parsed[2], parsed[3]);
+                obj.transform.Translation = new Vector3(parsed[0], parsed[1], parsed[2]);
                 obj.SetProperties(parsed[3], parsed[4], parsed[5]);
                 Env.Add(obj);
                 listBox.Items.Add(obj.color);
@@ -115,7 +115,7 @@ namespace RaytracingWPF
 
         private void UpdateButton(object sender, RoutedEventArgs e)
         {
-            if (listBox.SelectedIndex == 1) return;
+            if (listBox.SelectedIndex == -1) return;
 
             string[] pos = positionArgs.Text.Split(',');
             string[] mat = materialArgs.Text.Split(',');
