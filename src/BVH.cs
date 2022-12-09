@@ -2,17 +2,13 @@
 using System.Collections.Generic;
 using System.Numerics;
 using System.Windows;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 
 namespace RaytracingWPF
 {
     struct BVHNode
     {
-        public (Vector3 min, Vector3 max) aabb;
+        public Vector3 min;
+        public Vector3 max;
         public uint childPtr;
         public uint triOffset;
         public uint triCount;
@@ -28,7 +24,7 @@ namespace RaytracingWPF
         public static bool Build()
         {
             n = 0;
-            used = 0;
+            used = 1;
 
             List<Tri> t = new List<Tri>();
             for (int i = 0; i < Env.objects.Count; i++)
@@ -36,7 +32,7 @@ namespace RaytracingWPF
                 Object3D obj = Env.objects[i];
                 for (int j = 0; j < obj.faces.Length; j++)
                 {
-                    uint[] uvs = obj.uvIdx != null ? obj.uvIdx[j] : null;
+                    uint[] uvs = obj.uvIdx?[j];
                     t.Add(new Tri(i, uvs, obj.WorldSpace(obj.faces[j])));
                     n++;
                 }
@@ -50,18 +46,22 @@ namespace RaytracingWPF
             nodes[idx].childPtr = 0;
             nodes[idx].triOffset = 0;
             nodes[idx].triCount = n;
-            AABB(idx);
-
+            CreateAABB(idx);
             Subdivide(idx);
 
-            uint end = 0;
-            while (nodes[end].childPtr != 0) end = nodes[end].childPtr + 1; //follow right child until end
+            //find end of used array
+            uint end;
+            for (end = 0; end < 2 * n - 1; end++)
+                if (nodes[end].triCount == 0 && nodes[end].childPtr == 0)
+                {
+                    //truncate empty space in array
+                    BVHNode[] nodesTemp = new BVHNode[end];
+                    Array.Copy(nodes, nodesTemp, end);
+                    nodes = nodesTemp;
+                    break;
+                }
 
-            //truncate empty space in array
-            BVHNode[] nodesTemp = new BVHNode[end + 1];
-            for (uint i = 0; i <= end; i++) nodesTemp[i] = nodes[i];
-            nodes = nodesTemp;
-            foreach (BVHNode n in nodes) System.Diagnostics.Trace.WriteLine(n.triCount + "\t" + n.aabb.min + " -> " + n.aabb.max);
+            foreach (BVHNode n in nodes) System.Diagnostics.Trace.WriteLine(n.triOffset + "\t" + n.triCount + "\t" + n.childPtr + " " + n.min + " -> " + n.max);
 
             return true;
         }
@@ -74,10 +74,12 @@ namespace RaytracingWPF
             uint splitAxis = 0;
             float splitPos = 0;
             float minCost = float.MaxValue;
+
+            Vector3 bounds = new Vector3(node.max.X - node.min.X, node.max.Y - node.min.Y, node.max.Z - node.min.Z) / 16f;
             for (uint axis = 0; axis < 3; axis++)
             {
-                float start = GetAxis(node.aabb.min, axis);
-                float incr = GetAxis(node.aabb.max - node.aabb.min, axis) / 16f;
+                float start = GetAxis(node.min, axis);
+                float incr = GetAxis(bounds, axis);
 
                 for (uint x = 1; x < 16; x++) //subdivisions
                 {
@@ -93,8 +95,8 @@ namespace RaytracingWPF
             }
 
             //aabb is at optimum smallest size
-            float parentCost = node.triCount * AABBArea(node.aabb.min, node.aabb.max);
-            if (minCost >= parentCost) return;
+            float parentCost = node.triCount * AABBArea(node.min, node.max);
+            if (minCost > parentCost * 0.75f) return;
 
             //quick sort partition
             uint i = node.triOffset;
@@ -116,21 +118,23 @@ namespace RaytracingWPF
             uint l = i - node.triOffset;
             if (l == 0 || l == node.triCount) return; //no subdivision made - leaf node reached
 
-            nodes[idx].childPtr = used + 1;
+            uint leftIdx = used++;
+            uint rightIdx = used++;
 
-            nodes[used + 1].triOffset = node.triOffset;
-            nodes[used + 1].triCount = l;
-            AABB(used + 1);
+            nodes[idx].childPtr = leftIdx;
 
-            nodes[used + 2].triOffset = i;
-            nodes[used + 2].triCount = node.triCount - l;
-            AABB(used + 2);
+            nodes[leftIdx].triOffset = node.triOffset;
+            nodes[leftIdx].triCount = l;
+            CreateAABB(leftIdx);
+
+            nodes[rightIdx].triOffset = i;
+            nodes[rightIdx].triCount = node.triCount - l;
+            CreateAABB(rightIdx);
 
             nodes[idx].triCount = 0;
-            used += 2;
 
-            Subdivide(used + 1);
-            Subdivide(used + 2);
+            Subdivide(leftIdx);
+            Subdivide(rightIdx);
         }
 
         private static float SplitHeuristic(uint idx, float pos, uint axis)
@@ -179,7 +183,7 @@ namespace RaytracingWPF
             return cost;
         }
 
-        private static void AABB(uint idx)
+        private static void CreateAABB(uint idx)
         {
             Vector3 min = new Vector3(int.MaxValue);
             Vector3 max = new Vector3(int.MinValue);
@@ -199,7 +203,8 @@ namespace RaytracingWPF
                 }
             }
 
-            nodes[idx].aabb = (min, max);
+            nodes[idx].min = min;
+            nodes[idx].max = max;
         }
 
         private static float AABBArea(Vector3 min, Vector3 max)
